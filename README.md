@@ -1,0 +1,1 @@
+Assignments of Win 32.
