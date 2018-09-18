@@ -1,0 +1,7 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{A50522C6-8321-4F58-877C-2FD894A65F35}]
+@="Any Name"
+
+[HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{A50522C6-8321-4F58-877C-2FD894A65F35}\InprocServer32]
+@="Path of DLL File in clients directory"
