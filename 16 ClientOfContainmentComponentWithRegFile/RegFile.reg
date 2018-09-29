@@ -1,0 +1,11 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{1F93FD0C-72DF-4836-B79A-B157ED987C52}]
+@="OuterComDll"
+[HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{1F93FD0C-72DF-4836-B79A-B157ED987C52}\InprocServer32]
+@="C:\\Users\\prabh\\source\\repos\\ContainmentInnerComponentWithRegFile\\Release\\ContenmentOuterComponentWithRegFile.dll"
+
+[HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{E5F37C87-FD59-46B5-B355-E34EA7541FA1}]
+@="InnerComDll"
+[HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{E5F37C87-FD59-46B5-B355-E34EA7541FA1}\InprocServer32]
+@="C:\\Users\\prabh\\source\\repos\\ContainmentInnerComponentWithRegFile\\Release\\ContainmentInnerComponentWithRegFile.dll"
