@@ -1,0 +1,2 @@
+LIBRARY PhysicsDll
+EXPORTS GetResistance
