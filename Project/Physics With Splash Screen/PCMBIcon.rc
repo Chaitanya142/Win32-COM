@@ -1,3 +1,0 @@
-#include "PCMBIcon.h"
-
-PCMBICON ICON "PCMBIcon.ico"

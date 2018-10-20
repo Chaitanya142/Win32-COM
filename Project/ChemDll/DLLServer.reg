@@ -1,0 +1,7 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{B8A96FF5-94C9-43FD-911C-D2C5E582C1E6}]
+@="ChemDll"
+
+[HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{B8A96FF5-94C9-43FD-911C-D2C5E582C1E6}\InprocServer32]
+@="C:\\Users\\prabh\\source\\repos\\Physics With Splash Screen\\Release\\ChemDll.dll"
