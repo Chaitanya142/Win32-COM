@@ -1,0 +1,67 @@
+﻿// Created by Microsoft (R) C/C++ Compiler Version 14.15.26726.0 (8b1ec343).
+//
+// c:\users\prabh\source\repos\physics with splash screen\physics with splash screen\release\math.tlh
+//
+// C++ source equivalent of Win32 type library Math.tlb
+// compiler-generated file created 11/10/18 at 09:21:18 - DO NOT EDIT!
+
+#pragma once
+#pragma pack(push, 8)
+
+#include <comdef.h>
+
+namespace Math {
+
+//
+// Forward references and typedefs
+//
+
+struct __declspec(uuid("ca86e018-57e1-36c7-a658-d57c763dd690"))
+/* LIBID */ __Math;
+struct __declspec(uuid("9a4ba04f-1f9a-4773-a484-665c050418a1"))
+/* dispinterface */ IMath;
+struct /* coclass */ Math;
+
+//
+// Smart pointer typedef declarations
+//
+
+_COM_SMARTPTR_TYPEDEF(IMath, __uuidof(IMath));
+
+//
+// Type library items
+//
+
+struct __declspec(uuid("9a4ba04f-1f9a-4773-a484-665c050418a1"))
+IMath : IDispatch
+{
+    //
+    // Wrapper methods for error-handling
+    //
+
+    // Methods:
+    SAFEARRAY * AdditionOfInt2DArray (
+        SAFEARRAY * arr1,
+        SAFEARRAY * arr2 );
+    SAFEARRAY * SubstractionOfInt2DArray (
+        SAFEARRAY * arr1,
+        SAFEARRAY * arr2 );
+    SAFEARRAY * MultiplicationOfInt2DArray (
+        SAFEARRAY * arr1,
+        SAFEARRAY * arr2 );
+};
+
+struct __declspec(uuid("72fa7ff1-d5a8-435d-ab92-943154e55b09"))
+Math;
+    // interface _Object
+    // [ default ] dispinterface IMath
+
+//
+// Wrapper method implementations
+//
+
+#include "c:\users\prabh\source\repos\physics with splash screen\physics with splash screen\release\math.tli"
+
+} // namespace Math
+
+#pragma pack(pop)

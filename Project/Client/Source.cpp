@@ -7,12 +7,15 @@
 #include "MyDlgResource.h"
 #include "PCMBIcon.h"
 #include "ChemDllHeader.h"
+
+#import "Math.tlb"
 //#include "PhysicsDll.h"
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 int SplashScreen(HWND, HDC, HBITMAP);
 BOOL CALLBACK MyDlgProc(HWND, UINT, WPARAM, LPARAM);
-
+void EnableControls(HWND, int);
+void FreeLibraries(HMODULE, HMODULE);
 
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow) {
@@ -60,10 +63,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
 
 }
 
+static BOOL showSplashWindow;
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 	static HBITMAP hBitMap;
-	static BOOL showSplashWindow;
 	static HINSTANCE hInst;
 	switch (iMsg) {
 	case WM_CREATE:
@@ -177,12 +180,12 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 	HDC hdcStatic;
 	static HBRUSH BkColorBrush;
 	TEXTMETRIC lptm;
-	char Colors[13][15] = { "Black","Brown","Red","Orange","Yellow","Green","Blue","Violet","Grey","White","Gold","Silver"};
+	char Colors[13][15] = { "Black","Brown","Red","Orange","Yellow","Green","Blue","Violet","Grey","White","Gold","Silver" };
 	char * FirstBandValue = new char[20];
 	char * SecondBandValue = new char[20];
 	char * ThirdBandValue = new char[20];
 	char * FourthBandValue = new char[20];
-	char *ResistanceValue =new char[50];
+	char *ResistanceValue = new char[50];
 	char *TolerenceValue = new char[50];
 	typedef char *(*pfnGetResistance)(char *, char *, char *);
 	typedef char *(*GetTolerenceValue)(char *);
@@ -192,15 +195,16 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 	static HMODULE hLibChemDllClient = NULL;
 	static HRESULT hrTempChem = NULL;
 	typedef HRESULT(*pfnCalculateInitialPressure)(double *, double, double, double);
-	typedef HRESULT(*pfnCalculateInitialTemp)(double , double *, double, double);
-	typedef HRESULT(*pfnCalculateFinalPressure)(double , double, double *, double);
-	typedef HRESULT(*pfnCalculateFinalTemp)(double , double, double, double *);
+	typedef HRESULT(*pfnCalculateInitialTemp)(double, double *, double, double);
+	typedef HRESULT(*pfnCalculateFinalPressure)(double, double, double *, double);
+	typedef HRESULT(*pfnCalculateFinalTemp)(double, double, double, double *);
 	static pfnCalculateInitialPressure pfnICIP;
 	static pfnCalculateInitialTemp pfnICIT;
 	static pfnCalculateFinalPressure pfnICFP;
 	static pfnCalculateFinalTemp pfnICFT;
 	HRESULT hrChemDll;
 	static int iSelectedCBChem;
+	static int iSelectedCBMath;
 	static ICIP *pICIP = NULL;
 	char * PIValue = new char[255];
 	char * TIValue = new char[255];
@@ -210,17 +214,37 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 	double TI;
 	double PF;
 	double TF;
-	TCHAR ChemValue[]="";
+	int noOfItemsInComboBox = 0;
+	TCHAR ChemValue[] = "";
 	char * ChemVal = new char[255];
 
-	char ChemDropDownOptions[4][50] = {"Initial Pressure(Pi)","Initial Temprature(Ti)","Final Pressure(Pf)","Final Temprature(Tf)"};
+	char ChemDropDownOptions[4][50] = { "Initial Pressure(Pi)","Initial Temprature(Ti)","Final Pressure(Pf)","Final Temprature(Tf)" };
+
+	static Math::IMathPtr Mathptr;
+	char MathDropDownOption[3][5] = { "+","-","*" };
+	char * tempMathValue = new char[255];
+	double tempMath;
+	static int tempIndex = 0;
+	TCHAR tempMathVal[] = "";
+
+	static SAFEARRAYBOUND sab[2];
+	sab[0].cElements = 4;
+	sab[0].lLbound = 0;
+
+	sab[1].cElements = 4;
+	sab[1].lLbound = 0;
+	static SAFEARRAY* sa1 = SafeArrayCreate(VT_I4, 2, sab);
+	static SAFEARRAY* sa2 = SafeArrayCreate(VT_I4, 2, sab);
+	static SAFEARRAY* sa3;
 
 	switch (iMsg) {
 	case WM_INITDIALOG:
-		SetFocus(GetDlgItem(hDlg, ID_RBPHYSICS));
-		//SendDlgItemMessage(hDlg, ID_CBFBC,BM_SETCHECK , BST_CHECKED, (LPARAM)(LPCTSTR)0);
-		SendMessage(GetDlgItem(hDlg, ID_RBPHYSICS), BM_SETCHECK, BST_CHECKED, 1);
-		//SendDlgItemMessage(hDlg, ID_RBMARRIED, BM_SETCHECK, 1, 0);
+		//		SetFocus(GetDlgItem(hDlg, ID_RBPHYSICS));
+				//SendDlgItemMessage(hDlg, ID_CBFBC,BM_SETCHECK , BST_CHECKED, (LPARAM)(LPCTSTR)0);
+
+		EnableControls(hDlg, 0);
+		//		SendMessage(GetDlgItem(hDlg, ID_RBPHYSICS), BM_SETCHECK, BST_CHECKED, 1);
+				//SendDlgItemMessage(hDlg, ID_RBMARRIED, BM_SETCHECK, 1, 0);
 		BkColorBrush = CreateSolidBrush(RGB(100, 100, 100));
 		break;
 
@@ -270,38 +294,39 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 		//}
 		return (INT_PTR)(BkColorBrush);
 		break;
-	
-	/*case WM_CTLCOLORBTN:
-		return (INT_PTR)(BkColorBrush);
-		break;
-*/
+
+		/*case WM_CTLCOLORBTN:
+			return (INT_PTR)(BkColorBrush);
+			break;
+	*/
 	case WM_CTLCOLORSTATIC:
 		hdcStatic = (HDC)wParam;
-		SetBkColor(hdcStatic, RGB(100,100,100));
+		SetBkColor(hdcStatic, RGB(100, 100, 100));
 		SetTextColor(hdcStatic, RGB(0, 0, 0));
 		return (INT_PTR)(BkColorBrush);
-	
+
 	case WM_CTLCOLOREDIT:
 		hdcStatic = (HDC)wParam;
 		SetBkColor(hdcStatic, RGB(100, 100, 100));
 		SetTextColor(hdcStatic, RGB(255, 255, 255));
 		return (INT_PTR)(BkColorBrush);
 
-	/*case WM_CTLCOLORSCROLLBAR:
-		hdcStatic = (HDC)wParam;
-		SetBkColor(hdcStatic, RGB(100, 100, 100));
-		SetTextColor(hdcStatic, RGB(255, 255, 255));
-		return (INT_PTR)(BkColorBrush);*/
-	
+		/*case WM_CTLCOLORSCROLLBAR:
+			hdcStatic = (HDC)wParam;
+			SetBkColor(hdcStatic, RGB(100, 100, 100));
+			SetTextColor(hdcStatic, RGB(255, 255, 255));
+			return (INT_PTR)(BkColorBrush);*/
+
 	case WM_CLOSE:
 		DeleteObject(BkColorBrush);
 		DestroyWindow(hDlg);
 		hDlg = NULL;
+
 		return TRUE;
 
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
-		
+
 			//case ID_PBCONTINUE:
 			//EndDialog(hDlg, 0);
 			//break;
@@ -322,7 +347,7 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 			break;
 
 		case ID_PBPCAL:
-			
+
 			GetDlgItemText(hDlg, ID_CBFBC, FirstBandValue, 20);
 			GetDlgItemText(hDlg, ID_CBSBC, SecondBandValue, 20);
 			GetDlgItemText(hDlg, ID_CBTBC, ThirdBandValue, 20);
@@ -337,8 +362,8 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 			ResistanceValue = pfnGR(FirstBandValue, SecondBandValue, ThirdBandValue);
 
 			SetDlgItemText(hDlg, ID_ETRES, ResistanceValue);
-			
-			
+
+
 			//TolerenceValue = GetTolerenceValue(FourthBandValue);
 			TolerenceValue = pfnTV(FourthBandValue);
 			SetDlgItemText(hDlg, ID_ETTOL, TolerenceValue);
@@ -346,6 +371,11 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 			break;
 
 		case ID_RBPHYSICS:
+			EnableControls(hDlg, ID_RBPHYSICS);
+			FreeLibraries(hLib, hLibChemDllClient);
+			/*FreeLibrary(hLib);
+			FreeLibrary(hLibChemDllClient);
+			*/
 			hLib = LoadLibrary(TEXT("PhysicsDll.dll"));
 			if (hLib == NULL) {
 				MessageBox(hDlg, TEXT("Required DLL cannot be loaded"), TEXT("ERROR"), MB_OK | MB_ICONSTOP | MB_TOPMOST);
@@ -357,46 +387,63 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 			for (int i = 114; i < 122; i++)
 				EnableWindow(GetDlgItem(hDlg, i), TRUE);
 
-			for (int i = 0; i < 12; i++) {
-				if(i!=0 && i!=10 && i!=11)
-				SendDlgItemMessage(hDlg, ID_CBFBC, CB_ADDSTRING, (WPARAM)0, (LPARAM)(LPCTSTR)Colors[i]);
-			}
+			noOfItemsInComboBox = SendDlgItemMessage(hDlg, ID_CBFBC, CB_GETCOUNT, (WPARAM)0, (LPARAM)0);
+			if (noOfItemsInComboBox == 0)
+				for (int i = 0; i < 12; i++) {
+					if (i != 0 && i != 10 && i != 11)
+						SendDlgItemMessage(hDlg, ID_CBFBC, CB_ADDSTRING, (WPARAM)0, (LPARAM)(LPCTSTR)Colors[i]);
+				}
 
 			SendDlgItemMessage(hDlg, ID_CBFBC, CB_SETCURSEL, (WPARAM)0, (LPARAM)(LPCTSTR)0);
 
-			for (int i = 0; i < 12; i++) {
-				if (i != 10 && i != 11)
-				SendDlgItemMessage(hDlg, ID_CBSBC, CB_ADDSTRING, (WPARAM)0, (LPARAM)(LPCTSTR)Colors[i]);
-			}
+			noOfItemsInComboBox = SendDlgItemMessage(hDlg, ID_CBSBC, CB_GETCOUNT, (WPARAM)0, (LPARAM)0);
+			if (noOfItemsInComboBox == 0)
+				for (int i = 0; i < 12; i++) {
+					if (i != 10 && i != 11)
+						SendDlgItemMessage(hDlg, ID_CBSBC, CB_ADDSTRING, (WPARAM)0, (LPARAM)(LPCTSTR)Colors[i]);
+				}
 			SendDlgItemMessage(hDlg, ID_CBSBC, CB_SETCURSEL, (WPARAM)0, (LPARAM)(LPCTSTR)0);
 
-			for (int i = 0; i < 12; i++) {
-				SendDlgItemMessage(hDlg, ID_CBTBC, CB_ADDSTRING, (WPARAM)0, (LPARAM)(LPCTSTR)Colors[i]);
-			}
+			noOfItemsInComboBox = SendDlgItemMessage(hDlg, ID_CBTBC, CB_GETCOUNT, (WPARAM)0, (LPARAM)0);
+			if (noOfItemsInComboBox == 0)
+				for (int i = 0; i < 12; i++) {
+					SendDlgItemMessage(hDlg, ID_CBTBC, CB_ADDSTRING, (WPARAM)0, (LPARAM)(LPCTSTR)Colors[i]);
+				}
 			SendDlgItemMessage(hDlg, ID_CBTBC, CB_SETCURSEL, (WPARAM)0, (LPARAM)(LPCTSTR)0);
 
-			for (int i = 0; i < 12; i++) {
-				if (i != 0 && i != 9)
-				SendDlgItemMessage(hDlg, ID_CBFTHBC, CB_ADDSTRING, (WPARAM)0, (LPARAM)(LPCTSTR)Colors[i]);
-			}
+			noOfItemsInComboBox = SendDlgItemMessage(hDlg, ID_CBFTHBC, CB_GETCOUNT, (WPARAM)0, (LPARAM)0);
+			if (noOfItemsInComboBox == 0)
+				for (int i = 0; i < 12; i++) {
+					if (i != 0 && i != 9)
+						SendDlgItemMessage(hDlg, ID_CBFTHBC, CB_ADDSTRING, (WPARAM)0, (LPARAM)(LPCTSTR)Colors[i]);
+				}
 			SendDlgItemMessage(hDlg, ID_CBFTHBC, CB_SETCURSEL, (WPARAM)0, (LPARAM)(LPCTSTR)0);
 
-			
-	//		EnableWindow(GetDlgItem(hDlg, ID_ETRES),FALSE);
-	//		EnableWindow(GetDlgItem(hDlg, ID_ETTOL), FALSE);
 
-			/*int a=SendMessage(hDlg,
-				CB_ADDSTRING,
-				0,
-				reinterpret_cast<LPARAM>((LPCTSTR)Colors[0]));
-			*/
-		
-			/*for (int i = 0; i < 12; i++) {
-				SendDlgItemMessage(hDlg, ID_LBSBC, LB_ADDSTRING, (WPARAM)0, (LPARAM)(LPCTSTR)Colors[i]);
-			}
-			break;*/
+			//		EnableWindow(GetDlgItem(hDlg, ID_ETRES),FALSE);
+			//		EnableWindow(GetDlgItem(hDlg, ID_ETTOL), FALSE);
+
+					/*int a=SendMessage(hDlg,
+						CB_ADDSTRING,
+						0,
+						reinterpret_cast<LPARAM>((LPCTSTR)Colors[0]));
+					*/
+
+					/*for (int i = 0; i < 12; i++) {
+						SendDlgItemMessage(hDlg, ID_LBSBC, LB_ADDSTRING, (WPARAM)0, (LPARAM)(LPCTSTR)Colors[i]);
+					}
+					break;*/
+			break;
+
+
+
+		case ID_PBPSUB:
+			EnableControls(hDlg, 0);
 			break;
 		case ID_RBCHEMISTRY:
+			EnableControls(hDlg, ID_RBCHEMISTRY);
+			FreeLibraries(hLib, hLibChemDllClient);
+
 			hLibChemDllClient = LoadLibrary(TEXT("ChemDllClient.dll"));
 			if (hLibChemDllClient == NULL) {
 				MessageBox(hDlg, TEXT("Required DLL cannot be loaded"), TEXT("ERROR"), MB_OK | MB_ICONSTOP | MB_TOPMOST);
@@ -405,12 +452,16 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 
 			iSelectedCBChem = 0;
 			//EnableWindow(GetDlgItem(hDlg, ID_ETPI), FALSE);
-			
-			for (int i = 0; i < 4; i++) {
+			noOfItemsInComboBox = SendDlgItemMessage(hDlg, ID_CBCHEM, CB_GETCOUNT, (WPARAM)0, (LPARAM)0);
+			if (noOfItemsInComboBox == 0)
+				for (int i = 0; i < 4; i++) {
 					SendDlgItemMessage(hDlg, ID_CBCHEM, CB_ADDSTRING, (WPARAM)0, (LPARAM)(LPCTSTR)ChemDropDownOptions[i]);
-			}
+				}
 			SendDlgItemMessage(hDlg, ID_CBCHEM, CB_SETCURSEL, (WPARAM)0, (LPARAM)(LPCTSTR)0);
-
+			SendDlgItemMessage(hDlg, ID_ETPI, EM_SETREADONLY, (WPARAM)TRUE, 0);
+			SendDlgItemMessage(hDlg, ID_ETTI, EM_SETREADONLY, (WPARAM)FALSE, 0);
+			SendDlgItemMessage(hDlg, ID_ETPF, EM_SETREADONLY, (WPARAM)FALSE, 0);
+			SendDlgItemMessage(hDlg, ID_ETTF, EM_SETREADONLY, (WPARAM)FALSE, 0);
 
 			/*hrChemDll = CoCreateInstance(CLSID_GayLussacsLawCalculator, NULL, CLSCTX_INPROC_SERVER, IID_ICIP, (void **)&pICIP);
 			if (FAILED(hrChemDll)) {
@@ -432,29 +483,39 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 				//TCHAR str[] = "";
 				//wsprintf(str, tempString);
 				//MessageBox(hDlg, str, TEXT("ERROR"), MB_OK | MB_ICONSTOP | MB_TOPMOST);
-				 iSelectedCBChem = SendDlgItemMessage(hDlg, ID_CBCHEM, CB_GETCURSEL, (WPARAM)0, (LPARAM)0); //LOWORD(wParam);
+				iSelectedCBChem = SendDlgItemMessage(hDlg, ID_CBCHEM, CB_GETCURSEL, (WPARAM)0, (LPARAM)0); //LOWORD(wParam);
 				for (int i = 123; i < 127; i++)
 					EnableWindow(GetDlgItem(hDlg, i), TRUE);
 
+				SendDlgItemMessage(hDlg, ID_ETPI, EM_SETREADONLY, (WPARAM)FALSE, 0);
+				SendDlgItemMessage(hDlg, ID_ETTI, EM_SETREADONLY, (WPARAM)FALSE, 0);
+				SendDlgItemMessage(hDlg, ID_ETPF, EM_SETREADONLY, (WPARAM)FALSE, 0);
+				SendDlgItemMessage(hDlg, ID_ETTF, EM_SETREADONLY, (WPARAM)FALSE, 0);
+
 				switch (iSelectedCBChem) {
 				case 0:
-				//	EnableWindow(GetDlgItem(hDlg, ID_ETPI), FALSE);
+					SendDlgItemMessage(hDlg, ID_ETPI, EM_SETREADONLY, (WPARAM)TRUE, 0);
+					//set readonly
+					//	EnableWindow(GetDlgItem(hDlg, ID_ETPI), FALSE);
 					break;
 				case 1:
-				//	EnableWindow(GetDlgItem(hDlg, ID_ETTI), FALSE);
+					SendDlgItemMessage(hDlg, ID_ETTI, EM_SETREADONLY, (WPARAM)TRUE, 0);
+					//	EnableWindow(GetDlgItem(hDlg, ID_ETTI), FALSE);
 					break;
 				case 2:
-				//	EnableWindow(GetDlgItem(hDlg, ID_ETPF), FALSE);
+					SendDlgItemMessage(hDlg, ID_ETPF, EM_SETREADONLY, (WPARAM)TRUE, 0);
+					//	EnableWindow(GetDlgItem(hDlg, ID_ETPF), FALSE);
 					break;
 				case 3:
-				//	EnableWindow(GetDlgItem(hDlg, ID_ETTF), FALSE);
+					SendDlgItemMessage(hDlg, ID_ETTF, EM_SETREADONLY, (WPARAM)TRUE, 0);
+					//	EnableWindow(GetDlgItem(hDlg, ID_ETTF), FALSE);
 					break;
 
 				}
 
 				break;
 			}
-		break;
+			break;
 
 
 		case ID_PBCCAL:
@@ -470,7 +531,7 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 			case 0:
 				pfnICIP = (pfnCalculateInitialPressure)GetProcAddress(hLibChemDllClient, "CalculateInitialPressure");
 				hrTempChem = pfnICIP(&PI, TI, PF, TF);
-				
+
 				sprintf_s(ChemVal, 255, "%.2f", PI);
 				wsprintf(ChemValue, ChemVal);
 				SetDlgItemText(hDlg, ID_ETPI, ChemValue);
@@ -479,7 +540,7 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 			case 1:
 				pfnICIT = (pfnCalculateInitialTemp)GetProcAddress(hLibChemDllClient, "CalculateInitialTemp");
 				hrTempChem = pfnICIT(PI, &TI, PF, TF);
-				
+
 				sprintf_s(ChemVal, 255, "%.2f", TI);
 				wsprintf(ChemValue, ChemVal);
 				SetDlgItemText(hDlg, ID_ETTI, ChemValue);
@@ -503,20 +564,174 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 				break;
 
 			}
-			
+
 
 			break;
+
 		case ID_RBMATH:
-		case ID_RBBIO:
-			FreeLibrary(hLib);
-			FreeLibrary(hLibChemDllClient);			
-			for(int i=114;i<122;i++)
-				EnableWindow(GetDlgItem(hDlg, i), FALSE);
+			EnableControls(hDlg, ID_RBMATH);
+			//ptr.CreateInstance(L"{72FA7FF1-D5A8-435D-AB92-943154E55B09}");
+			Mathptr.CreateInstance(L"MathLib.Math");
+			noOfItemsInComboBox = SendDlgItemMessage(hDlg, ID_CBMATHOPR, CB_GETCOUNT, (WPARAM)0, (LPARAM)0);
+			if (noOfItemsInComboBox == 0)
+				for (int i = 0; i < 3; i++) {
+					SendDlgItemMessage(hDlg, ID_CBMATHOPR, CB_ADDSTRING, (WPARAM)0, (LPARAM)(LPCTSTR)MathDropDownOption[i]);
+				}
+			SendDlgItemMessage(hDlg, ID_CBMATHOPR, CB_SETCURSEL, (WPARAM)0, (LPARAM)(LPCTSTR)0);
+
+			for (int i = 163; i < 179; i++) {
+				SendDlgItemMessage(hDlg, i, EM_SETREADONLY, (WPARAM)TRUE, 0);
+			}
+
+
+
+			/*if (Mathptr != nullptr)
+			{
+
+			}
+			catch (_com_error const & e)
+			{
+				std::wcout << (wchar_t*)e.ErrorMessage() << std::endl;
+			}
+*/
 			break;
-		
+
+		case ID_PBMCAL:
+			iSelectedCBMath = SendDlgItemMessage(hDlg, ID_CBMATHOPR, CB_GETCURSEL, (WPARAM)0, (LPARAM)0); //LOWORD(wParam);
+
+			tempIndex = 131;
+			for (int i = 0; i < 4; i++)
+			{
+				for (int j = 0; j < 4; j++)
+				{
+					LONG index[2] = { i, j };
+					GetDlgItemText(hDlg, tempIndex, tempMathValue, 255);
+					tempMath = atof(tempMathValue);
+					int value = tempMath;
+					SafeArrayPutElement(sa1, index, &value);
+					tempIndex++;
+				}
+			}
+
+			tempIndex = 147;
+			for (int i = 0; i < 4; i++)
+			{
+				for (int j = 0; j < 4; j++)
+				{
+					LONG index[2] = { i, j };
+					GetDlgItemText(hDlg, tempIndex, tempMathValue, 255);
+					tempMath = atof(tempMathValue);
+					int value = tempMath;
+					SafeArrayPutElement(sa2, index, &value);
+					tempIndex++;
+				}
+			}
+
+			/*GetDlgItemText(hDlg, ID_ETPI, PIValue, 255);
+			GetDlgItemText(hDlg, ID_ETTI, TIValue, 255);
+			GetDlgItemText(hDlg, ID_ETPF, PFValue, 255);
+			GetDlgItemText(hDlg, ID_ETTF, TFValue, 255);
+			PI = atof(PIValue);
+			TI = atof(TIValue);
+			PF = atof(PFValue);
+			TF = atof(TFValue);*/
+
+			//SafeArrayDestroy(sa3);
+			if (Mathptr != nullptr) {
+				switch (iSelectedCBMath) {
+				case 0:
+					sa3 = Mathptr->AdditionOfInt2DArray(sa1, sa2);
+					break;
+				case 1:
+					sa3 = Mathptr->SubstractionOfInt2DArray(sa1, sa2);
+					break;
+				case 2:
+					sa3 = Mathptr->MultiplicationOfInt2DArray(sa1, sa2);
+					break;
+				}
+
+				VARTYPE vt;
+				SafeArrayGetVartype(sa3, &vt);
+
+				if (vt == VT_I4)
+				{
+					LONG begin[2]{ 0 };
+					LONG end[2]{ 0 };
+
+					SafeArrayGetLBound(sa3, 1, &begin[0]);
+					SafeArrayGetLBound(sa3, 2, &begin[1]);
+					SafeArrayGetUBound(sa3, 1, &end[0]);
+					SafeArrayGetUBound(sa3, 2, &end[1]);
+
+					tempIndex = 163;
+
+
+					for (LONG i = begin[0]; i <= end[0]; ++i)
+					{
+						for (LONG j = begin[1]; j <= end[1]; ++j)
+						{
+							LONG index[2]{ i,j };
+							int v;
+							SafeArrayGetElement(sa3, index, &v);
+							sprintf_s(tempMathValue, 255, "%d", v);
+							wsprintf(tempMathVal, tempMathValue);
+							SetDlgItemText(hDlg, tempIndex, tempMathVal);
+							tempIndex++;
+						}
+
+					}
+				}
+
+
+
+				/*	SafeArrayDestroy(sa1);
+					SafeArrayDestroy(sa2);
+					SafeArrayDestroy(sa3);*/
+
+			}
+
+
+			break;
+		case ID_RBBIO:
+			EnableControls(hDlg, ID_RBBIO);
+
+
+			/*for(int i=114;i<122;i++)
+				EnableWindow(GetDlgItem(hDlg, i), FALSE);
+			break;*/
+
 		}
 		return(TRUE);
 	}
 	return(FALSE);
 }
 
+void EnableControls(HWND hDlg, int flag) {
+	for (int i = 114; i < 182; i++)
+		EnableWindow(GetDlgItem(hDlg, i), FALSE);
+
+	switch (flag)
+	{
+	case ID_RBPHYSICS:
+		for (int i = 114; i < 122; i++)
+			EnableWindow(GetDlgItem(hDlg, i), TRUE);
+		break;
+	case ID_RBCHEMISTRY:
+		for (int i = 122; i < 129; i++)
+			EnableWindow(GetDlgItem(hDlg, i), TRUE);
+		break;
+	case ID_RBMATH:
+		for (int i = 129; i < 182; i++)
+			EnableWindow(GetDlgItem(hDlg, i), TRUE);
+		break;
+	default:
+		break;
+	}
+
+}
+
+
+void FreeLibraries(HMODULE hLibPhy, HMODULE hLibChem) {
+	FreeLibrary(hLibPhy);
+	FreeLibrary(hLibChem);
+}
