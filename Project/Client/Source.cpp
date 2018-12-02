@@ -8,7 +8,7 @@
 #include "PCMBIcon.h"
 #include "ChemDllHeader.h"
 
-#import "Math.tlb"
+//#import "Math.tlb"
 //#include "PhysicsDll.h"
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -220,22 +220,39 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 
 	char ChemDropDownOptions[4][50] = { "Initial Pressure(Pi)","Initial Temprature(Ti)","Final Pressure(Pf)","Final Temprature(Tf)" };
 
-	static Math::IMathPtr Mathptr;
+	//static Math::IMathPtr Mathptr;
 	char MathDropDownOption[3][5] = { "+","-","*" };
 	char * tempMathValue = new char[255];
 	double tempMath;
 	static int tempIndex = 0;
 	TCHAR tempMathVal[] = "";
 
-	static SAFEARRAYBOUND sab[2];
-	sab[0].cElements = 4;
-	sab[0].lLbound = 0;
+	//static SAFEARRAYBOUND sab[2];
+	//sab[0].cElements = 4;
+	//sab[0].lLbound = 0;
 
-	sab[1].cElements = 4;
-	sab[1].lLbound = 0;
-	static SAFEARRAY* sa1 = SafeArrayCreate(VT_I4, 2, sab);
-	static SAFEARRAY* sa2 = SafeArrayCreate(VT_I4, 2, sab);
-	static SAFEARRAY* sa3;
+	//sab[1].cElements = 4;
+	//sab[1].lLbound = 0;
+	//static SAFEARRAY* sa1 = SafeArrayCreate(VT_I4, 2, sab);
+	//static SAFEARRAY* sa2 = SafeArrayCreate(VT_I4, 2, sab);
+	//static SAFEARRAY* sa3;
+
+	static HMODULE hLibMathDll = NULL;
+
+	static double mathInputArray1[4][4];
+	static double mathInputArray2[4][4];
+	static double mathOutputtArray[4][4];
+
+	typedef int(*pfnAdditionOfInt2DArray)(double[][4], double[][4], double[][4]);
+	static pfnAdditionOfInt2DArray pfnAddition;
+
+	typedef int(*pfnSubstractionOfInt2DArray)(double[][4], double[][4], double[][4]);
+	static pfnSubstractionOfInt2DArray pfnSub;
+
+	typedef int(*pfnMultiplicationOfInt2DArray)(double[][4], double[][4], double[][4]);
+	static pfnMultiplicationOfInt2DArray pfnMult;
+
+	static HRESULT hresultMathAns;
 
 	switch (iMsg) {
 	case WM_INITDIALOG:
@@ -569,9 +586,12 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 			break;
 
 		case ID_RBMATH:
+			hLibMathDll = LoadLibrary(TEXT("MathDllWrapper.dll"));
+
+
 			EnableControls(hDlg, ID_RBMATH);
 			//ptr.CreateInstance(L"{72FA7FF1-D5A8-435D-AB92-943154E55B09}");
-			Mathptr.CreateInstance(L"MathLib.Math");
+//			Mathptr.CreateInstance(L"MathLib.Math");
 			noOfItemsInComboBox = SendDlgItemMessage(hDlg, ID_CBMATHOPR, CB_GETCOUNT, (WPARAM)0, (LPARAM)0);
 			if (noOfItemsInComboBox == 0)
 				for (int i = 0; i < 3; i++) {
@@ -582,7 +602,7 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 			for (int i = 163; i < 179; i++) {
 				SendDlgItemMessage(hDlg, i, EM_SETREADONLY, (WPARAM)TRUE, 0);
 			}
-
+			
 
 
 			/*if (Mathptr != nullptr)
@@ -604,26 +624,22 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 			{
 				for (int j = 0; j < 4; j++)
 				{
-					LONG index[2] = { i, j };
 					GetDlgItemText(hDlg, tempIndex, tempMathValue, 255);
 					tempMath = atof(tempMathValue);
-					int value = tempMath;
-					SafeArrayPutElement(sa1, index, &value);
+					mathInputArray1[i][j] = tempMath;
 					tempIndex++;
 				}
 			}
-
 			tempIndex = 147;
 			for (int i = 0; i < 4; i++)
 			{
 				for (int j = 0; j < 4; j++)
 				{
-					LONG index[2] = { i, j };
 					GetDlgItemText(hDlg, tempIndex, tempMathValue, 255);
 					tempMath = atof(tempMathValue);
-					int value = tempMath;
-					SafeArrayPutElement(sa2, index, &value);
+					mathInputArray2[i][j] = tempMath;
 					tempIndex++;
+
 				}
 			}
 
@@ -635,64 +651,40 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 			TI = atof(TIValue);
 			PF = atof(PFValue);
 			TF = atof(TFValue);*/
-
 			//SafeArrayDestroy(sa3);
-			if (Mathptr != nullptr) {
+
+			if (hLibMathDll != nullptr) {
 				switch (iSelectedCBMath) {
 				case 0:
-					sa3 = Mathptr->AdditionOfInt2DArray(sa1, sa2);
+					pfnAddition = (pfnAdditionOfInt2DArray)GetProcAddress(hLibMathDll, "AdditionOfInt2DArray");
+					hresultMathAns = pfnAddition(mathInputArray1,mathInputArray2,mathOutputtArray);					
 					break;
 				case 1:
-					sa3 = Mathptr->SubstractionOfInt2DArray(sa1, sa2);
+					pfnSub = (pfnSubstractionOfInt2DArray)GetProcAddress(hLibMathDll, "SubstractionOfInt2DArray");
+					hresultMathAns = pfnSub(mathInputArray1, mathInputArray2, mathOutputtArray);
 					break;
 				case 2:
-					sa3 = Mathptr->MultiplicationOfInt2DArray(sa1, sa2);
+					pfnMult = (pfnMultiplicationOfInt2DArray)GetProcAddress(hLibMathDll, "MultiplicationOfInt2DArray");
+					hresultMathAns = pfnMult(mathInputArray1, mathInputArray2, mathOutputtArray);
 					break;
 				}
-
-				VARTYPE vt;
-				SafeArrayGetVartype(sa3, &vt);
-
-				if (vt == VT_I4)
+				tempIndex = 163;
+				for (int i = 0; i < 4; i++)
 				{
-					LONG begin[2]{ 0 };
-					LONG end[2]{ 0 };
-
-					SafeArrayGetLBound(sa3, 1, &begin[0]);
-					SafeArrayGetLBound(sa3, 2, &begin[1]);
-					SafeArrayGetUBound(sa3, 1, &end[0]);
-					SafeArrayGetUBound(sa3, 2, &end[1]);
-
-					tempIndex = 163;
-
-
-					for (LONG i = begin[0]; i <= end[0]; ++i)
+					for (int j = 0; j < 4; j++)
 					{
-						for (LONG j = begin[1]; j <= end[1]; ++j)
-						{
-							LONG index[2]{ i,j };
-							int v;
-							SafeArrayGetElement(sa3, index, &v);
-							sprintf_s(tempMathValue, 255, "%d", v);
-							wsprintf(tempMathVal, tempMathValue);
-							SetDlgItemText(hDlg, tempIndex, tempMathVal);
-							tempIndex++;
-						}
-
+						sprintf_s(tempMathValue, 255, "%.2f", mathOutputtArray[i][j]);
+						wsprintf(tempMathVal, tempMathValue);
+						SetDlgItemText(hDlg, tempIndex, tempMathVal);
+						tempIndex++;
 					}
 				}
-
-
-
-				/*	SafeArrayDestroy(sa1);
-					SafeArrayDestroy(sa2);
-					SafeArrayDestroy(sa3);*/
-
+						
 			}
-
 
 			break;
 		case ID_RBBIO:
+			//Mathptr.Release();
 			EnableControls(hDlg, ID_RBBIO);
 
 

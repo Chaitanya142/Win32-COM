@@ -1,0 +1,83 @@
+﻿// Created by Microsoft (R) C/C++ Compiler Version 14.15.26726.0 (5f208684).
+//
+// c:\users\prabh\source\repos\physics with splash screen\mathdllwrapper\release\math.tlh
+//
+// C++ source equivalent of Win32 type library Math.tlb
+// compiler-generated file created 12/02/18 at 16:19:39 - DO NOT EDIT!
+
+#pragma once
+#pragma pack(push, 8)
+
+#include <comdef.h>
+
+namespace Math {
+
+//
+// Forward references and typedefs
+//
+
+struct __declspec(uuid("ca86e018-57e1-36c7-a658-d57c763dd690"))
+/* LIBID */ __Math;
+struct __declspec(uuid("64271cdf-3b65-3c62-8385-952fc92e29dc"))
+/* dual interface */ IMath;
+struct /* coclass */ Math;
+
+//
+// Smart pointer typedef declarations
+//
+
+_COM_SMARTPTR_TYPEDEF(IMath, __uuidof(IMath));
+
+//
+// Type library items
+//
+
+struct __declspec(uuid("64271cdf-3b65-3c62-8385-952fc92e29dc"))
+IMath : IDispatch
+{
+    //
+    // Wrapper methods for error-handling
+    //
+
+    SAFEARRAY * AdditionOfInt2DArray (
+        SAFEARRAY * arr1,
+        SAFEARRAY * arr2 );
+    SAFEARRAY * SubstractionOfInt2DArray (
+        SAFEARRAY * arr1,
+        SAFEARRAY * arr2 );
+    SAFEARRAY * MultiplicationOfInt2DArray (
+        SAFEARRAY * arr1,
+        SAFEARRAY * arr2 );
+
+    //
+    // Raw methods provided by interface
+    //
+
+      virtual HRESULT __stdcall raw_AdditionOfInt2DArray (
+        /*[in]*/ SAFEARRAY * arr1,
+        /*[in]*/ SAFEARRAY * arr2,
+        /*[out,retval]*/ SAFEARRAY * * pRetVal ) = 0;
+      virtual HRESULT __stdcall raw_SubstractionOfInt2DArray (
+        /*[in]*/ SAFEARRAY * arr1,
+        /*[in]*/ SAFEARRAY * arr2,
+        /*[out,retval]*/ SAFEARRAY * * pRetVal ) = 0;
+      virtual HRESULT __stdcall raw_MultiplicationOfInt2DArray (
+        /*[in]*/ SAFEARRAY * arr1,
+        /*[in]*/ SAFEARRAY * arr2,
+        /*[out,retval]*/ SAFEARRAY * * pRetVal ) = 0;
+};
+
+struct __declspec(uuid("9cd718dd-1ad6-3f39-a11b-cbbf378cfbdf"))
+Math;
+    // interface _Object
+    // [ default ] interface IMath
+
+//
+// Wrapper method implementations
+//
+
+#include "c:\users\prabh\source\repos\physics with splash screen\mathdllwrapper\release\math.tli"
+
+} // namespace Math
+
+#pragma pack(pop)

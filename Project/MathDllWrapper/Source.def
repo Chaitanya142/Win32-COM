@@ -1,0 +1,5 @@
+LIBRARY MathDllWrapper
+EXPORTS AdditionOfInt2DArray
+		SubstractionOfInt2DArray
+		MultiplicationOfInt2DArray
+		
