@@ -7,14 +7,14 @@
   IgnorableNamespaces="uap mp">
 
   <Identity
-    Name="eb47b291-ab03-4a2c-ac30-30b949014f74"
+    Name="69c0ee7c-3273-46c2-91cb-9a4309f391fa"
     Publisher="CN=Chaitanya"
     Version="1.0.0.0" />
 
-  <mp:PhoneIdentity PhoneProductId="eb47b291-ab03-4a2c-ac30-30b949014f74" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+  <mp:PhoneIdentity PhoneProductId="69c0ee7c-3273-46c2-91cb-9a4309f391fa" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
-    <DisplayName>HelloWorldNoGridNoPage</DisplayName>
+    <DisplayName>HelloWorldNoApp</DisplayName>
     <PublisherDisplayName>Chaitanya</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -28,14 +28,14 @@
   </Resources>
 
   <Applications>
-    <Application Id="App"
+    <Application Id="HelloWorldNoApp"
       Executable="$targetnametoken$.exe"
-      EntryPoint="HelloWorldNoGridNoPage.App">
+      EntryPoint="HelloWorldNoApp.App">
       <uap:VisualElements
-        DisplayName="HelloWorldNoGridNoPage"
+        DisplayName="HelloWorldNoApp"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png"
-        Description="HelloWorldNoGridNoPage"
+        Description="HelloWorldNoApp"
         BackgroundColor="transparent">
         <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"/>
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
