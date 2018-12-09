@@ -7,16 +7,25 @@
 #include "MyDlgResource.h"
 #include "PCMBIcon.h"
 #include "ChemDllHeader.h"
-
+#include <strsafe.h>
+using namespace std;
 //#import "Math.tlb"
 //#include "PhysicsDll.h"
 
+
+int lastSavedSubject = 0;
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 int SplashScreen(HWND, HDC, HBITMAP);
 BOOL CALLBACK MyDlgProc(HWND, UINT, WPARAM, LPARAM);
 void EnableControls(HWND, int);
-void FreeLibraries(HMODULE, HMODULE);
+void FreeLibraries(HMODULE, HMODULE, HMODULE);
+char * ExePath(int);
+bool writeToFile(char *, char *);
+void getXMLElement(char *, char *, char *);
 
+int physicsState = 1;
+int chemistryState = 1;
+int mathState = 1;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow) {
 
@@ -92,6 +101,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 				DeleteObject(hdc);
 			*/
 			DialogBox(hInst, "PCMB", hwnd, (DLGPROC)MyDlgProc);
+			//InvalidateRect(hwnd, NULL, true);
+			if (showSplashWindow)
+				SplashScreen(hwnd, hdc, hBitMap);
 		}
 		EndPaint(hwnd, &ps);
 		break;
@@ -254,6 +266,16 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 
 	static HRESULT hresultMathAns;
 
+	//static FILE * fp;
+	//HANDLE hFile;
+	static bool fileWriteStatus;
+	static char* fileWriteData;
+	SYSTEMTIME st;
+	static char* DateTime;
+	static char* xmlElement;
+	static char* tagElement;
+	static char* tagValue;
+
 	switch (iMsg) {
 	case WM_INITDIALOG:
 		//		SetFocus(GetDlgItem(hDlg, ID_RBPHYSICS));
@@ -360,6 +382,7 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 			//break;
 
 		case ID_PBEXIT:
+			showSplashWindow = true;
 			EndDialog(hDlg, 0);
 			break;
 
@@ -389,7 +412,7 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 
 		case ID_RBPHYSICS:
 			EnableControls(hDlg, ID_RBPHYSICS);
-			FreeLibraries(hLib, hLibChemDllClient);
+			FreeLibraries(hLib, hLibChemDllClient, hLibMathDll);
 			/*FreeLibrary(hLib);
 			FreeLibrary(hLibChemDllClient);
 			*/
@@ -455,11 +478,119 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 
 
 		case ID_PBPSUB:
-			EnableControls(hDlg, 0);
+
+			//fp = fopen(ExePath(1), "w");
+
+			//GetDlgItemText(hDlg, ID_CBFBC, FirstBandValue, 20);
+			//GetDlgItemText(hDlg, ID_CBSBC, SecondBandValue, 20);
+			//GetDlgItemText(hDlg, ID_CBTBC, ThirdBandValue, 20);
+			//GetDlgItemText(hDlg, ID_CBFTHBC, FourthBandValue, 20);
+
+			///*sprintf_s(Value1, sizeof(GetDlgItemText(hDlg, ID_CB, buf, 9)), GetDlgItemText(hwnd, IDC_COMBO1, buf, 9));
+			//sprintf_s(Value2, sizeof(Value2), Value2);
+			//sprintf_s(Value3, sizeof("silver"), "silver");
+			//sprintf_s(Value4, sizeof("Gold"), "Gold");*/
+
+			////ResistanceValue=GetResistance(FirstBandValue, SecondBandValue, ThirdBandValue);
+			//ResistanceValue = pfnGR(FirstBandValue, SecondBandValue, ThirdBandValue);
+
+			//SetDlgItemText(hDlg, ID_ETRES, ResistanceValue);
+
+
+			////TolerenceValue = GetTolerenceValue(FourthBandValue);
+			//TolerenceValue = pfnTV(FourthBandValue);
+			//SetDlgItemText(hDlg, ID_ETTOL, TolerenceValue);
+			/*fprintf(fp, "First Band Value :");
+			fprintf(fp, FirstBandValue);
+			fprintf(fp, "Second Band Value :");
+			fprintf(fp, SecondBandValue);
+			fprintf(fp, "Third Band Value :");
+			fprintf(fp, ThirdBandValue);
+			fprintf(fp, "Fourth Band Value :");
+			fprintf(fp, FourthBandValue);
+			fprintf(fp, "ResistanceValue :");
+			fprintf(fp, ResistanceValue);
+			fprintf(fp, "Tolenrence Band Value :");
+			fprintf(fp, TolerenceValue);
+
+			fclose(fp);*/
+			GetSystemTime(&st);
+			GetDlgItemText(hDlg, ID_CBFBC, FirstBandValue, 20);
+			GetDlgItemText(hDlg, ID_CBSBC, SecondBandValue, 20);
+			GetDlgItemText(hDlg, ID_CBTBC, ThirdBandValue, 20);
+			GetDlgItemText(hDlg, ID_CBFTHBC, FourthBandValue, 20);
+			GetDlgItemText(hDlg, ID_ETRES, ResistanceValue, 20);
+			GetDlgItemText(hDlg, ID_ETTOL, TolerenceValue, 20);
+
+			DateTime = new char[50];
+			//strcat_s(DateTime, 50, st.wYear);
+			sprintf_s(DateTime, 50, "DateTime-%hu%hu%hu-%hu%hu%hu%hu", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+
+			fileWriteData = new char[1024];
+			strcpy_s(fileWriteData, 1024, "<");
+			strcat_s(fileWriteData, 1024, DateTime);
+			strcat_s(fileWriteData, 1024, ">\n");
+
+
+
+			strcat_s(fileWriteData, 1024, "<Physics>\n");
+
+			strcat_s(fileWriteData, 1024, "<FirstBandValue> ");
+			strcat_s(fileWriteData, 1024, FirstBandValue);
+			strcat_s(fileWriteData, 1024, " </FirstBandValue>\n");
+
+			strcat_s(fileWriteData, 1024, "<SecondBandValue> ");
+			strcat_s(fileWriteData, 1024, SecondBandValue);
+			strcat_s(fileWriteData, 1024, " </SecondBandValue>\n");
+
+			strcat_s(fileWriteData, 1024, "<ThirdBandValue> ");
+			strcat_s(fileWriteData, 1024, ThirdBandValue);
+			strcat_s(fileWriteData, 1024, " </ThirdBandValue>\n");
+
+			strcat_s(fileWriteData, 1024, "<FourthBandValue> ");
+			strcat_s(fileWriteData, 1024, FourthBandValue);
+			strcat_s(fileWriteData, 1024, " </FourthBandValue>\n");
+
+			strcat_s(fileWriteData, 1024, "<ResistanceValue> ");
+			strcat_s(fileWriteData, 1024, ResistanceValue);
+			strcat_s(fileWriteData, 1024, " </ResistanceValue>\n");
+
+			strcat_s(fileWriteData, 1024, "<TolerenceValue> ");
+			strcat_s(fileWriteData, 1024, "+/-");
+			strcat_s(fileWriteData, 1024, string(TolerenceValue).substr(string(TolerenceValue).find_last_of(" "), string(TolerenceValue).length()).c_str());
+			//strcat_s(fileWriteData, 1024, TolerenceValue);
+			strcat_s(fileWriteData, 1024, " </TolerenceValue>\n");
+
+			strcat_s(fileWriteData, 1024, "</Physics>\n");
+			strcat_s(fileWriteData, 1024, "</");
+			strcat_s(fileWriteData, 1024, DateTime);
+			strcat_s(fileWriteData, 1024, ">\n");
+
+			fileWriteStatus = writeToFile(ExePath(1), fileWriteData);
+
+			if (fileWriteStatus) {
+				static char* FileNameForDisplay = new char[255];
+				sprintf_s(FileNameForDisplay, 255, "The Current State of Physics has been saved in a file by the name Physics-State-%d-Log.xml", physicsState);
+				MessageBox(hDlg, FileNameForDisplay, "Physics File Save Message", MB_OK);
+				physicsState++;
+				free(FileNameForDisplay);
+			}
+
+			free(fileWriteData);
+			free(DateTime);
+			/*	fileWriteStatus = writeToFile(ExePath(1), FirstBandValue);
+				fileWriteStatus = writeToFile(ExePath(1), SecondBandValue);
+				fileWriteStatus = writeToFile(ExePath(1), ThirdBandValue);
+				fileWriteStatus = writeToFile(ExePath(1), FourthBandValue);
+				fileWriteStatus = writeToFile(ExePath(1), ResistanceValue);
+				fileWriteStatus = writeToFile(ExePath(1), TolerenceValue);
+	*/
+			lastSavedSubject = ID_RBPHYSICS;
+			EnableControls(hDlg, -1);
 			break;
 		case ID_RBCHEMISTRY:
 			EnableControls(hDlg, ID_RBCHEMISTRY);
-			FreeLibraries(hLib, hLibChemDllClient);
+			FreeLibraries(hLib, hLibChemDllClient, hLibMathDll);
 
 			hLibChemDllClient = LoadLibrary(TEXT("ChemDllClient.dll"));
 			if (hLibChemDllClient == NULL) {
@@ -585,7 +716,107 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 
 			break;
 
+		case ID_PBCSUB:
+			GetSystemTime(&st);
+			GetDlgItemText(hDlg, ID_ETPI, PIValue, 255);
+			GetDlgItemText(hDlg, ID_ETTI, TIValue, 255);
+			GetDlgItemText(hDlg, ID_ETPF, PFValue, 255);
+			GetDlgItemText(hDlg, ID_ETTF, TFValue, 255);
+			DateTime = new char[50];
+			//strcat_s(DateTime, 50, st.wYear);
+			sprintf_s(DateTime, 50, "DateTime-%hu%hu%hu-%hu%hu%hu%hu", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+
+			fileWriteData = new char[1024];
+			xmlElement = new char[100];
+			tagElement = new char[20];
+
+			strcpy_s(fileWriteData, 1024, "<");
+			strcat_s(fileWriteData, 1024, DateTime);
+			strcat_s(fileWriteData, 1024, ">\n");
+			strcat_s(fileWriteData, 1024, "<");
+			strcat_s(fileWriteData, 1024, "Chemistry");
+			strcat_s(fileWriteData, 1024, ">\n");
+
+			//iSelectedCBChem = SendDlgItemMessage(hDlg, ID_CBCHEM, CB_GETCURSEL, (WPARAM)0, (LPARAM)0); 
+			//tagValue = new char(30);
+			/*			strcpy_s(tagElement, 20, "Calculate");
+			switch (iSelectedCBChem) {
+			case 0:
+				strcpy_s(tagValue, 30, "InitialPressure");
+				break;
+			case 1:
+				strcpy_s(tagValue, 30, "InitialTemp");
+				break;
+			case 2:
+				strcpy_s(tagValue, 30, "FinalPressure");
+				break;
+			case 3:
+				strcpy_s(tagValue, 30, "FinalTemp");
+				break;
+			}*/
+			//getXMLElement(tagElement, tagValue, xmlElement);
+			//strcat_s(fileWriteData, 1024, xmlElement);
+
+			switch (iSelectedCBChem) {
+			case 0:
+				strcat_s(fileWriteData, 1024, "<Calculate> InitialPressure </Calculate>\n");
+				break;
+			case 1:
+				strcat_s(fileWriteData, 1024, "<Calculate> InitialPressure </Calculate>\n");
+				break;
+			case 2:
+				strcat_s(fileWriteData, 1024, "<Calculate> InitialPressure </Calculate>\n");
+				break;
+			case 3:
+				strcat_s(fileWriteData, 1024, "<Calculate> InitialPressure </Calculate>\n");
+				break;
+			}
+
+
+			strcpy_s(tagElement, 20, "PI");
+			getXMLElement(tagElement, PIValue, xmlElement);
+			strcat_s(fileWriteData, 1024, xmlElement);
+			strcpy_s(tagElement, 20, "TI");
+			getXMLElement(tagElement, TIValue, xmlElement);
+			strcat_s(fileWriteData, 1024, xmlElement);
+			strcpy_s(tagElement, 20, "PF");
+			getXMLElement(tagElement, PFValue, xmlElement);
+			strcat_s(fileWriteData, 1024, xmlElement);
+			strcpy_s(tagElement, 20, "TF");
+			getXMLElement(tagElement, TFValue, xmlElement);
+			strcat_s(fileWriteData, 1024, xmlElement);
+
+
+			strcat_s(fileWriteData, 1024, "</");
+			strcat_s(fileWriteData, 1024, "Chemistry");
+			strcat_s(fileWriteData, 1024, ">\n");
+			strcat_s(fileWriteData, 1024, "</");
+			strcat_s(fileWriteData, 1024, DateTime);
+			strcat_s(fileWriteData, 1024, ">\n");
+			//static char *filePath = new char[512];
+			//strcpy_s(filePath, 512, "C:\\Users\\prabh\\source\\repos\\Physics With Splash Screen\\Release\\Chem.xml");
+			fileWriteStatus = writeToFile(ExePath(2), fileWriteData);
+			if (fileWriteStatus) {
+				static char* FileNameForDisplay = new char[255];
+				sprintf_s(FileNameForDisplay, 255, "The Current State of Chemistry has been saved in a file by the name Chemistry-State-%d-Log.xml", chemistryState);
+				MessageBox(hDlg, FileNameForDisplay, "Chemistry File Save Message", MB_OK);
+				chemistryState++;
+				free(FileNameForDisplay);
+			}
+			free(fileWriteData);
+			free(DateTime);
+			free(xmlElement);
+			free(tagElement);
+			free(tagValue);
+
+			lastSavedSubject = ID_RBCHEMISTRY;
+
+			EnableControls(hDlg, -1);
+			break;
+
 		case ID_RBMATH:
+			FreeLibraries(hLib, hLibChemDllClient, hLibMathDll);
+
 			hLibMathDll = LoadLibrary(TEXT("MathDllWrapper.dll"));
 
 
@@ -602,7 +833,7 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 			for (int i = 163; i < 179; i++) {
 				SendDlgItemMessage(hDlg, i, EM_SETREADONLY, (WPARAM)TRUE, 0);
 			}
-			
+
 
 
 			/*if (Mathptr != nullptr)
@@ -657,7 +888,7 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 				switch (iSelectedCBMath) {
 				case 0:
 					pfnAddition = (pfnAdditionOfInt2DArray)GetProcAddress(hLibMathDll, "AdditionOfInt2DArray");
-					hresultMathAns = pfnAddition(mathInputArray1,mathInputArray2,mathOutputtArray);					
+					hresultMathAns = pfnAddition(mathInputArray1, mathInputArray2, mathOutputtArray);
 					break;
 				case 1:
 					pfnSub = (pfnSubstractionOfInt2DArray)GetProcAddress(hLibMathDll, "SubstractionOfInt2DArray");
@@ -679,15 +910,134 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 						tempIndex++;
 					}
 				}
-						
+
 			}
 
 			break;
+
+		case ID_PBMSUB:
+			GetSystemTime(&st);
+			DateTime = new char[50];
+			//strcat_s(DateTime, 50, st.wYear);
+			sprintf_s(DateTime, 50, "DateTime-%hu%hu%hu-%hu%hu%hu%hu", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+
+			fileWriteData = new char[2048];
+			xmlElement = new char[100];
+			tagElement = new char[20];
+
+			strcpy_s(fileWriteData, 2048, "<");
+			strcat_s(fileWriteData, 2048, DateTime);
+			strcat_s(fileWriteData, 2048, ">\n");
+			strcat_s(fileWriteData, 2048, "<");
+			strcat_s(fileWriteData, 2048, "Math");
+			strcat_s(fileWriteData, 2048, ">\n");
+
+			strcat_s(fileWriteData, 2048, "<");
+			strcat_s(fileWriteData, 2048, "Matrix1");
+			strcat_s(fileWriteData, 2048, ">\n");
+			tempIndex = 131;
+			for (int i = 0; i < 4; i++)
+			{
+				for (int j = 0; j < 4; j++)
+				{
+					GetDlgItemText(hDlg, tempIndex, tempMathValue, 255);
+					sprintf_s(tagElement, 20, "M1%d%d", i, j);
+					getXMLElement(tagElement, tempMathValue, xmlElement);
+					strcat_s(fileWriteData, 2048, xmlElement);
+					tempIndex++;
+				}
+			}
+			strcat_s(fileWriteData, 2048, "</");
+			strcat_s(fileWriteData, 2048, "Matrix1");
+			strcat_s(fileWriteData, 2048, ">\n");
+
+			strcat_s(fileWriteData, 2048, "<");
+			strcat_s(fileWriteData, 2048, "Matrix2");
+			strcat_s(fileWriteData, 2048, ">\n");
+			tempIndex = 147;
+			for (int i = 0; i < 4; i++)
+			{
+				for (int j = 0; j < 4; j++)
+				{
+					GetDlgItemText(hDlg, tempIndex, tempMathValue, 255);
+					sprintf_s(tagElement, 20, "M2%d%d", i, j);
+					getXMLElement(tagElement, tempMathValue, xmlElement);
+					strcat_s(fileWriteData, 2048, xmlElement);
+					tempIndex++;
+				}
+			}
+			strcat_s(fileWriteData, 2048, "</");
+			strcat_s(fileWriteData, 2048, "Matrix2");
+			strcat_s(fileWriteData, 2048, ">\n");
+
+			//strcpy_s(tagElement, 20, "Calculate");
+			//tagValue = new char(30);
+			switch (iSelectedCBMath) {
+			case 0:
+				strcat_s(fileWriteData, 2048, "<Calculate> Addition </Calculate>\n");
+				//strcpy_s(tagValue, 30, "Addition");
+				break;
+			case 1:
+				strcat_s(fileWriteData, 2048, "<Calculate> Substraction </Calculate>\n");
+				//strcpy_s(tagValue, 30, "Substraction");
+				break;
+			case 2:
+				strcat_s(fileWriteData, 2048, "<Calculate> Multiplication </Calculate>\n");
+				//strcpy_s(tagValue, 30, "Multiplication");
+				break;
+			}
+			//getXMLElement(tagElement, tagValue, xmlElement);
+			//strcat_s(fileWriteData, 2048, xmlElement);
+
+			strcat_s(fileWriteData, 2048, "<");
+			strcat_s(fileWriteData, 2048, "Matrix3");
+			strcat_s(fileWriteData, 2048, ">\n");
+			tempIndex = 163;
+			for (int i = 0; i < 4; i++)
+			{
+				for (int j = 0; j < 4; j++)
+				{
+					GetDlgItemText(hDlg, tempIndex, tempMathValue, 255);
+					sprintf_s(tagElement, 20, "M3%d%d", i, j);
+					getXMLElement(tagElement, tempMathValue, xmlElement);
+					strcat_s(fileWriteData, 2048, xmlElement);
+					tempIndex++;
+				}
+			}
+			strcat_s(fileWriteData, 2048, "</");
+			strcat_s(fileWriteData, 2048, "Matrix3");
+			strcat_s(fileWriteData, 2048, ">\n");
+
+
+
+			strcat_s(fileWriteData, 2048, "</");
+			strcat_s(fileWriteData, 2048, "Math");
+			strcat_s(fileWriteData, 2048, ">\n");
+			strcat_s(fileWriteData, 2048, "</");
+			strcat_s(fileWriteData, 2048, DateTime);
+			strcat_s(fileWriteData, 2048, ">\n");
+			fileWriteStatus = writeToFile(ExePath(3), fileWriteData);
+
+			if (fileWriteStatus) {
+				static char* FileNameForDisplay = new char[255];
+				sprintf_s(FileNameForDisplay, 255, "The Current State of Math has been saved in a file by the name Math-State-%d-Log.xml", mathState);
+				MessageBox(hDlg, FileNameForDisplay, "Math File Save Message", MB_OK);
+				mathState++;
+				free(FileNameForDisplay);
+			}
+			free(fileWriteData);
+			free(DateTime);
+			free(xmlElement);
+			free(tagElement);
+			lastSavedSubject = ID_RBMATH;
+
+			EnableControls(hDlg, -1);
+			break;
+
 		case ID_RBBIO:
 			//Mathptr.Release();
 			EnableControls(hDlg, ID_RBBIO);
-
-
+			SendMessage(hDlg, WM_COMMAND, lastSavedSubject, 0);
 			/*for(int i=114;i<122;i++)
 				EnableWindow(GetDlgItem(hDlg, i), FALSE);
 			break;*/
@@ -701,6 +1051,8 @@ BOOL CALLBACK MyDlgProc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 void EnableControls(HWND hDlg, int flag) {
 	for (int i = 114; i < 182; i++)
 		EnableWindow(GetDlgItem(hDlg, i), FALSE);
+
+	EnableWindow(GetDlgItem(hDlg, ID_RBBIO), FALSE);
 
 	switch (flag)
 	{
@@ -716,6 +1068,26 @@ void EnableControls(HWND hDlg, int flag) {
 		for (int i = 129; i < 182; i++)
 			EnableWindow(GetDlgItem(hDlg, i), TRUE);
 		break;
+	case ID_RBBIO:
+		EnableWindow(GetDlgItem(hDlg, ID_RBPHYSICS), TRUE);
+		EnableWindow(GetDlgItem(hDlg, ID_RBCHEMISTRY), TRUE);
+		EnableWindow(GetDlgItem(hDlg, ID_RBMATH), TRUE);
+		EnableWindow(GetDlgItem(hDlg, ID_RBBIO), FALSE);
+		SendDlgItemMessage(hDlg, ID_RBBIO, BM_SETCHECK , BST_UNCHECKED, 0);//Only sets value
+
+		//SendMessage(GetDlgItem(hDlg, ID_RBPHYSICS), BM_SETCHECK, BST_CHECKED, 1);
+		//SendDlgItemMessage(hDlg, ID_RBPHYSICS, BM_SETCHECK, 1, 0);//Only sets value
+		//	SendDlgItemMessage(hDlg, ID_RBPHYSICS,WM_COMMAND, 1, 0);
+		//SendDlgItemMessage(hDlg, ID_CBFBC, BM_SETCHECK, BST_CHECKED, (LPARAM)(LPCTSTR)0);
+		break;
+	case -1:
+		SetFocus(GetDlgItem(hDlg, ID_RBBIO));
+		EnableWindow(GetDlgItem(hDlg, ID_RBPHYSICS), FALSE);
+		EnableWindow(GetDlgItem(hDlg, ID_RBCHEMISTRY), FALSE);
+		EnableWindow(GetDlgItem(hDlg, ID_RBMATH), FALSE);
+		EnableWindow(GetDlgItem(hDlg, ID_RBBIO), TRUE);
+		//SendDlgItemMessage(hDlg, ID_CBFBC,BM_SETCHECK , BST_CHECKED, (LPARAM)(LPCTSTR)0);
+		break;
 	default:
 		break;
 	}
@@ -723,7 +1095,123 @@ void EnableControls(HWND hDlg, int flag) {
 }
 
 
-void FreeLibraries(HMODULE hLibPhy, HMODULE hLibChem) {
+void FreeLibraries(HMODULE hLibPhy, HMODULE hLibChem,HMODULE hLibMathDll) {
 	FreeLibrary(hLibPhy);
 	FreeLibrary(hLibChem);
+	FreeLibrary(hLibMathDll);
 }
+
+char* ExePath(int Subject) {
+	static char buffer[MAX_PATH];
+	char fileName[50];
+	GetModuleFileName(NULL, buffer, MAX_PATH);
+	string::size_type pos = string(buffer).find_last_of("\\/");
+	//return string(buffer).substr(0, pos);
+
+//	char *cstr = new char[string(buffer).substr(0, pos).length() + 30];
+	char *cstr = new char[MAX_PATH];
+	//char *cstr = new char[150];
+
+	strcpy_s(cstr, sizeof(buffer), string(buffer).substr(0, pos).c_str());
+
+	if (Subject == 1) {
+		strcat_s(cstr, sizeof(buffer), "\\Physics-State-");
+		strcat_s(cstr, sizeof(buffer), to_string(physicsState).c_str());
+		strcat_s(cstr, sizeof(buffer), "-log.xml");
+		//char fileName[50] = "\Physics.txt";
+	}
+	else if (Subject == 2) {
+		//strcat_s(cstr, sizeof(buffer), "\\Chemistry.xml");
+		strcat_s(cstr, sizeof(buffer), "\\Chemistry-State-");
+		strcat_s(cstr, sizeof(buffer), to_string(chemistryState).c_str());
+		strcat_s(cstr, sizeof(buffer), "-log.xml");
+	}
+	//		char fileName[50] = "\Chemistry.txt";
+	else if (Subject == 3) {
+		//strcat_s(cstr, sizeof(buffer), "\\Math.xml");
+		strcat_s(cstr, sizeof(buffer), "\\Math-State-");
+		strcat_s(cstr, sizeof(buffer), to_string(mathState).c_str());
+		strcat_s(cstr, sizeof(buffer), "-log.xml");
+	}
+	//		char fileName[50] = "\Math.txt";
+	else
+		strcat_s(cstr, sizeof(buffer), "\\Error.xml");
+	//		char fileName[50] = "\Error.txt";
+		//char * FilePath = new char[std::strlen(buffer) + std::strlen(fileName) + 1];
+	return cstr;
+}
+
+bool writeToFile(char * filePath, char * Data) {
+	HANDLE hFile;
+	BOOL bErrorFlag = FALSE;
+	DWORD dwBytesToWrite = (DWORD)strlen(Data);
+	DWORD dwBytesWritten = 0;
+
+	hFile = CreateFile(filePath,                // name of the write
+		GENERIC_READ | GENERIC_WRITE,          // open for writing
+		0,                      // do not share
+		NULL,                   // default security
+		CREATE_NEW,             // create new file only
+		FILE_ATTRIBUTE_NORMAL,  // normal file
+		NULL);
+	if (hFile != INVALID_HANDLE_VALUE)
+	{
+		char *xmlFileHeader = new char[100];
+		strcpy_s(xmlFileHeader, 100, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<xml>\n</xml>\n");
+		DWORD dwBytesToWriteNew = (DWORD)strlen(xmlFileHeader);
+		DWORD dwBytesWrittenNew = 0;
+
+		bErrorFlag = WriteFile(
+			hFile,           // open file handle
+			xmlFileHeader,      // start of data to write
+			dwBytesToWriteNew,  // number of bytes to write
+			&dwBytesWrittenNew, // number of bytes that were written
+			NULL);            // no overlapped structure
+	}
+	CloseHandle(hFile);
+
+	hFile = CreateFile(filePath,                // name of the write
+		GENERIC_READ | GENERIC_WRITE,          // open for writing
+		0,                      // do not share
+		NULL,                   // default security
+		OPEN_ALWAYS,             // create new file only
+		FILE_ATTRIBUTE_NORMAL,  // normal file
+		NULL);
+	SetFilePointer(hFile, -7, NULL, FILE_END);
+	if (hFile != INVALID_HANDLE_VALUE)
+	{
+		bErrorFlag = WriteFile(
+			hFile,           // open file handle
+			Data,      // start of data to write
+			dwBytesToWrite,  // number of bytes to write
+			&dwBytesWritten, // number of bytes that were written
+			NULL);            // no overlapped structure
+	}
+
+	char *xmlFileHeader = new char[10];
+	strcpy_s(xmlFileHeader, 10, "</xml>\n");
+	DWORD dwBytesToWriteNew = (DWORD)strlen(xmlFileHeader);
+	DWORD dwBytesWrittenNew = 0;
+
+	bErrorFlag = WriteFile(
+		hFile,           // open file handle
+		xmlFileHeader,      // start of data to write
+		dwBytesToWriteNew,  // number of bytes to write
+		&dwBytesWrittenNew, // number of bytes that were written
+		NULL);            // no overlapped structure
+
+	CloseHandle(hFile);
+
+	return bErrorFlag;
+}
+
+void getXMLElement(char * tag, char * value, char * out) {
+	strcpy_s(out, 100, "<");
+	strcat_s(out, 100, tag);
+	strcat_s(out, 100, "> ");
+	strcat_s(out, 100, value);
+	strcat_s(out, 100, " </");
+	strcat_s(out, 100, tag);
+	strcat_s(out, 100, ">\n");
+}
+
