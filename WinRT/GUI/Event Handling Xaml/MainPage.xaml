@@ -1,0 +1,39 @@
+﻿<Page
+    x:Class="HelloWorld.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:HelloWorld"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Grid>
+        <TextBlock x:Name="textBlock"
+            Text="Hello World!!!"
+           FontFamily="Segoe UI" 
+           FontSize="120"
+           FontStyle="Oblique"
+          FontWeight="Bold"
+           Foreground="Gold"
+           HorizontalAlignment="Center"
+           VerticalAlignment="Center">
+
+        </TextBlock>
+        <Button x:Name="button"
+                Width="600"
+                Height="200"
+                Content="Click Me"
+                BorderThickness="12"
+                BorderBrush="Gold"
+                Foreground="Red"
+                FontFamily="Seoge UI"
+                FontSize="120"
+                FontStyle="Normal"
+                FontWeight="Bold"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                Click="OnButtonClick"></Button>
+
+    </Grid>
+</Page>
